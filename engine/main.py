@@ -50,4 +50,5 @@ def main():
         finally:
             conn.close()
 if __name__ == "__main__":
-    main()
+    automatic_speech_recognition()
+    # main()
