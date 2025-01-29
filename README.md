@@ -17,6 +17,5 @@ The engine container runs with a UNIX socket exposed to allow data to stream bac
 ## TODO
 
 * Audio input from microphone to record to a file on disk
-* Create an architecture and design document
 * Should the UI manage the Pipewire graph and send chunks over to the engine in the container, who then sends back a data structure with the text output? [It looks like this is possible](https://stackoverflow.com/a/75775875)
 * Can the text output just be a stream that writes to a file on disk?
