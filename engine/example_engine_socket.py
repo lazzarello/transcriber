@@ -1,48 +1,48 @@
-import socket
+import asyncio
 import os
-import threading
 
-def receive_messages(conn):
-    try: 
+async def receive_messages(reader):
+    try:
         while True:
-            data = conn.recv(1024)
+            data = await reader.read(1024)
             if not data:
                 break
             message = data.decode('utf-8')
             print(message)
-    except ConnectionResetError:
-        print("Client disconnected")
+    except ConnectionError:
+        print("Peer disconnected")
 
-def send_messages(conn):
+async def send_messages(writer):
     try:
         while True:
-            message = input("> ")
-            conn.send(message.encode('utf-8'))
-    except (BrokenPipeError, ConnectionResetError):
+            message = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: input("> ")
+            )
+            writer.write(message.encode('utf-8'))
+            await writer.drain()
+    except ConnectionError:
         print("\nConnection lost")
 
-socket_path = f'{os.getcwd()}/my_socket.sock'
-if os.path.exists(socket_path):
-    os.remove(socket_path)
+async def handle_connection(reader, writer):
+    receive_task = asyncio.create_task(receive_messages(reader))
+    send_task = asyncio.create_task(send_messages(writer))
+    await asyncio.gather(receive_task, send_task)
 
-server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-server.bind(socket_path)
-server.listen(1)
+async def main():
+    socket_path = f'{os.getcwd()}/my_socket.sock'
+    if os.path.exists(socket_path):
+        os.remove(socket_path)
 
-print("Server started, waiting for connection...")
-while True:
-    conn, addr = server.accept()
-    print("Client connected")
-
-    receive_thread = threading.Thread(target=receive_messages, args=(conn,))
-    send_thread = threading.Thread(target=send_messages, args=(conn,))
-
-    receive_thread.daemon = True
-    send_thread.daemon = True
-
-    receive_thread.start()  # Start threads before joining
-    send_thread.start()
+    server = await asyncio.start_unix_server(
+        handle_connection, socket_path
+    )
+    print("Server started, waiting for connection...")
     
-    receive_thread.join()
-    send_thread.join()
-    conn.close()
+    async with server:
+        await server.serve_forever()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nShutting down...")

@@ -1,45 +1,46 @@
-import socket
+import asyncio
 import os
-import threading
 
-def receive_messages(conn):
+async def receive_messages(reader):
     try:
         while True:
-            data = conn.recv(1024)
+            data = await reader.read(1024)
             if not data:
                 break
             message = data.decode('utf-8')
             print(f"\nReceived: {message}")
             print("> ", end='', flush=True)
-    except ConnectionResetError:
-        print("\nServer disconnected")
+    except ConnectionError:
+        print("\nPeer disconnected")
 
-def send_messages(conn):
+async def send_messages(writer):
     try:
         while True:
-            message = input("> ")
-            conn.send(message.encode('utf-8'))
-    except (BrokenPipeError, ConnectionResetError):
+            message = await asyncio.get_event_loop().run_in_executor(
+                None, lambda: input("> ")
+            )
+            writer.write(message.encode('utf-8'))
+            await writer.drain()
+    except ConnectionError:
         print("\nConnection lost")
 
-conn = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-conn.connect(f'{os.getcwd()}/../engine/my_socket.sock')
-
-print("Connected to server. Type messages and press Enter to send. Ctrl+C to quit.")
-
-receive_thread = threading.Thread(target=receive_messages, args=(conn,))
-send_thread = threading.Thread(target=send_messages, args=(conn,))
-
-receive_thread.daemon = True
-send_thread.daemon = True
-
-try:
-    receive_thread.start()  # Start threads before joining
-    send_thread.start()
+async def main():
+    socket_path = f'{os.getcwd()}/../engine/my_socket.sock'
+    reader, writer = await asyncio.open_unix_connection(socket_path)
     
-    receive_thread.join()
-    send_thread.join()
-except KeyboardInterrupt:
-    print("\nDisconnecting...")
-finally:
-    conn.close()
+    print("Connected. Type messages and press Enter to send. Ctrl+C to quit.")
+    
+    try:
+        await asyncio.gather(
+            receive_messages(reader),
+            send_messages(writer)
+        )
+    finally:
+        writer.close()
+        await writer.wait_closed()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\nDisconnecting...")
