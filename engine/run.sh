@@ -1,7 +1,11 @@
 #!/bin/bash
-docker run -it --user lee --rm --gpus all \
+docker run -it --user lee --rm \
+  --gpus all \
+  --runtime=nvidia \
+  -e NVIDIA_VISIBLE_DEVICES=all \
+  -e NVIDIA_DRIVER_CAPABILITIES=all \
   -v $(pwd):/app \
   -v $HOME/.cache/huggingface/hub:$HOME/.cache/huggingface/hub \
   -v $HOME/.cache/huggingface/datasets:$HOME/.cache/huggingface/datasets \
-  nvidia-cuda-12.4.0-pytorch-2.5.1:transformers \
+  transcriber-engine:gpu-debug \
   /bin/bash
