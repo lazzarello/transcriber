@@ -1,20 +1,57 @@
 import curses
 import time
 import asyncio
+import os
+from collections import deque
 
-async def receive_messages(reader):
+class MessageBox:
+    def __init__(self, height, width, y, x):
+        self.height = height
+        self.width = width
+        self.y = y
+        self.x = x
+        self.messages = deque(maxlen=height)
+        self.window = None
+
+    def create_window(self, stdscr):
+        self.window = stdscr.subwin(self.height + 2, self.width + 2, self.y, self.x)
+        self.window.box()
+        self.refresh()
+
+    def add_message(self, message):
+        # Split long messages into multiple lines
+        while len(message) > self.width:
+            self.messages.append(message[:self.width])
+            message = message[self.width:]
+        self.messages.append(message)
+        self.refresh()
+
+    def refresh(self):
+        if not self.window:
+            return
+        # Clear the content area (not the border)
+        for i in range(self.height):
+            self.window.addstr(i + 1, 1, " " * self.width)
+        
+        # Print messages
+        for i, msg in enumerate(self.messages):
+            if i < self.height:
+                self.window.addstr(i + 1, 1, msg[:self.width])
+        
+        self.window.refresh()
+
+async def receive_messages(reader, message_box):
     try:
         while True:
             data = await reader.read(1024)
             if not data:
                 break
             message = data.decode('utf-8')
-            print(f"\nReceived: {message}")
-            print("> ", end='', flush=True)
+            message_box.add_message(f"Received: {message}")
     except ConnectionError:
-        print("\nPeer disconnected")
+        message_box.add_message("Peer disconnected")
 
-async def send_messages(writer):
+async def send_messages(writer, message_box):
     try:
         while True:
             message = await asyncio.get_event_loop().run_in_executor(
@@ -22,113 +59,46 @@ async def send_messages(writer):
             )
             writer.write(message.encode('utf-8'))
             await writer.drain()
+            message_box.add_message(f"Sent: {message}")
     except ConnectionError:
-        print("\nConnection lost")
+        message_box.add_message("Connection lost")
 
-async def main():
+async def main(stdscr):
+    # Initialize curses
+    curses.start_color()
+    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
+    stdscr.clear()
+    
+    # Create message box in the bottom half of the screen
+    height, width = stdscr.getmaxyx()
+    message_box = MessageBox(
+        height=10,  # Height of message area
+        width=width-4,  # Width of message area
+        y=height-12,  # Position from top
+        x=2  # Position from left
+    )
+    message_box.create_window(stdscr)
+    
+    # Connect to socket
     socket_path = f'{os.getcwd()}/../engine/my_socket.sock'
     reader, writer = await asyncio.open_unix_connection(socket_path)
     
-    print("Connected. Type messages and press Enter to send. Ctrl+C to quit.")
+    message_box.add_message("Connected. Type messages and press Enter to send. Ctrl+C to quit.")
     
     try:
         await asyncio.gather(
-            receive_messages(reader),
-            send_messages(writer)
+            receive_messages(reader, message_box),
+            send_messages(writer, message_box)
         )
     finally:
         writer.close()
         await writer.wait_closed()
 
-def ui_peer(stdscr):
-    stdscr.clear()
-    
-    nodes = ["Node A","Node B", "Node C","Node D"]
-    connections = [(0,1), (1,2)]
-    current_row = 0
-    connecting_from = None
-    disconnecting_from = None
-    status_message = ""
-    status_timestamp = 0
+def run():
+    try:
+        curses.wrapper(lambda stdscr: asyncio.run(main(stdscr)))
+    except KeyboardInterrupt:
+        print("\nDisconnecting...")
 
-    def print_menu():
-        stdscr.clear()
-        for idx, node in enumerate(nodes):
-            x = 0
-            y = idx
-            if idx == current_row:
-                stdscr.addstr(y, x, node, curses.A_REVERSE)
-            else:
-                stdscr.addstr(y, x, node)
-            
-            # Highlight the selected first node during connection/disconnection
-            if idx == connecting_from:
-                stdscr.addstr(y, len(node) + 2, "[Connecting from]")
-            elif idx == disconnecting_from:
-                stdscr.addstr(y, len(node) + 2, "[Disconnecting from]")
-        
-        # Print existing connections
-        y = len(nodes) + 1
-        for i, conn in enumerate(connections):
-            stdscr.addstr(y + i, 0, f"Connection: {nodes[conn[0]]} -> {nodes[conn[1]]}")
-        
-        # Print status message if within timeout
-        if status_message and time.time() - status_timestamp < 5:
-            stdscr.addstr(len(nodes) + len(connections) + 2, 0, status_message)
-        
-        stdscr.refresh()
-
-    curses.start_color()
-    curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_WHITE)
-    
-    while True:
-        print_menu()
-        key = stdscr.getch()
-        
-        if key == curses.KEY_UP and current_row > 0:
-            current_row -= 1
-        elif key == curses.KEY_DOWN and current_row < len(nodes) - 1:
-            current_row += 1
-        elif key == ord('c'):
-            if connecting_from is None:
-                connecting_from = current_row
-                status_message = "Select second node to connect to"
-                status_timestamp = time.time()
-            else:
-                if connecting_from != current_row:  # Prevent self-connections
-                    new_connection = (connecting_from, current_row)
-                    if new_connection not in connections:
-                        connections.append(new_connection)
-                        status_message = f"Connected: {nodes[connecting_from]} -> {nodes[current_row]}"
-                        status_timestamp = time.time()  # Reset timestamp for new message
-                    else:
-                        status_message = "Connection already exists!"
-                else:
-                    status_message = "Cannot connect node to itself!"
-                    status_timestamp = time.time()
-                connecting_from = None
-        elif key == ord('d'):
-            if disconnecting_from is None:
-                disconnecting_from = current_row
-                status_message = "Select second node to disconnect from"
-                status_timestamp = time.time()
-            else:
-                connection_to_remove = (disconnecting_from, current_row)
-                if connection_to_remove in connections:
-                    connections.remove(connection_to_remove)
-                    status_message = f"Disconnected: {nodes[disconnecting_from]} -> {nodes[current_row]}"
-                    status_timestamp = time.time()  # Reset timestamp for new message
-                else:
-                    status_message = "No such connection exists!"
-                    status_timestamp = time.time()
-                disconnecting_from = None
-        elif key == ord('q'):
-            break
-        elif key == 27:  # ESC key
-            connecting_from = None
-            disconnecting_from = None
-            status_message = "Operation cancelled"
-        
-        stdscr.refresh()
-
-curses.wrapper(ui_peer)
+if __name__ == "__main__":
+    run()
