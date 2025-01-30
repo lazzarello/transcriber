@@ -10,13 +10,13 @@ The transcriber depends on streaming audio from a microphone. It does not work o
 
 The client is a UI using the curses terminal UI library, it sends messages to the container over the socket.
 
-The engine container runs with a UNIX socket exposed to allow data to stream back and forth between the host and container. The nvidia-containter-toolkit must be installed and configured.
+The engine container runs with a UNIX socket exposed to allow data to stream back and forth between the host and container. The nvidia-containter-toolkit must be installed and configured to get GPU acceleration for the Whisper model.
 
 `docker run --rm -it --gpus all -v $(pwd):/app socket-server`
 
 ## TODO
 
-* Audio input from microphone to record to a file on disk
 * Should the UI manage the Pipewire graph and send chunks over to the engine in the container, who then sends back a data structure with the text output? [It looks like this is possible](https://stackoverflow.com/a/75775875)
+* Audio input from microphone to record to a file on disk
 * Verify the python socket library can enable tx/rx for each side
 * send example speech-to-text output over the socket from the engine container
