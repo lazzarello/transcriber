@@ -16,5 +16,8 @@ The engine container runs with a UNIX socket exposed to allow data to stream bac
 
 ## TODO
 
-* Should the UI manage the Pipewire graph and send chunks over to the engine in the container, who then sends back a data structure with the text output? [It looks like this is possible](https://stackoverflow.com/a/75775875)
-* Audio input from microphone to record to a file on disk
+* Run CPU inference on a file recorded manually from my laptop microphone + pipewire setup
+
+## BIG UPS!
+
+* [Random user on the internet named Alex](https://stackoverflow.com/a/75775875) who figured out the pipewire socket into a container pattern for audio intput into the engine container

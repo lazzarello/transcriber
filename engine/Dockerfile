@@ -1,6 +1,7 @@
 FROM nvidia/cuda:12.1.1-devel-ubuntu22.04
 RUN apt-get update && apt-get -y upgrade
-RUN apt-get install -y python3 python3-pip python-is-python3 git
+RUN apt-get install -y python3 python3-pip python-is-python3 git \
+    pipewire alsa-utils pipewire-audio-client-libraries
 
 # Install NumPy 1.x first to avoid version conflicts
 RUN pip3 install "numpy<2.0"
