@@ -140,20 +140,24 @@ async def main(stdscr):
         while True:
             try:
                 key = stdscr.getch()
-                if key == ord(' '):  # Space bar
+                if key == ord(' '):  # Space bar pressed
                     button.toggle(True)
                     message_container['current'] = await start_transcription()
                     event.set()
+                    message_box.add_message("Transcription started")
                     
-                    # Wait for key release
+                    # Keep checking until space is released
+                    stdscr.nodelay(1)  # Make getch() non-blocking
                     while True:
                         key = stdscr.getch()
-                        if key == ord(' '):
+                        if key == ord(' '):  # Space bar released
                             button.toggle(False)
                             message_container['current'] = await stop_transcription()
                             event.set()
+                            message_box.add_message("Transcription stopped")
                             break
                         await asyncio.sleep(0.01)
+                    stdscr.nodelay(0)  # Restore blocking behavior
             except Exception as e:
                 message_box.add_message(f"Input error: {str(e)}")
             await asyncio.sleep(0.01)

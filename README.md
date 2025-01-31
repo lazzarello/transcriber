@@ -16,7 +16,7 @@ The engine container runs with a UNIX socket exposed to allow data to stream bac
 
 ## TODO
 
-* Run CPU inference on a file recorded manually from my laptop microphone + pipewire setup
+* Run CPU inference on a file recorded through the Transcribe button using from my laptop microphone + pipewire setup
 
 ## BIG UPS!
 
