@@ -3,8 +3,21 @@ from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
 from datasets import load_dataset
 import asyncio
 import os
+import subprocess
+
+async def start_recording():
+    cmd = ["arecord", "--device=pipewire", "test.wav"]
+    handle = subprocess.Popen(cmd)  # Use Popen instead of run
+    return handle
+
+async def stop_recording(handle):
+    if handle:
+        handle.terminate()
+        handle.wait()  # Wait for the process to actually terminate
+    return handle
 
 async def receive_messages(reader):
+    recording_handle = None
     try:
         while True:
             data = await reader.read(1024)
@@ -12,8 +25,28 @@ async def receive_messages(reader):
                 break
             message = data.decode('utf-8')
             print(message)
+            
+            # Convert string representation of dict to actual dict
+            if message.startswith('{') and message.endswith('}'):
+                try:
+                    msg_dict = eval(message)  # Safe here since we control the message format
+                    if msg_dict.get('type') == 'transcribe':
+                        if msg_dict.get('event') == 'on' and not recording_handle:
+                            recording_handle = await start_recording()
+                            print("Recording started")
+                        elif msg_dict.get('event') == 'off' and recording_handle:
+                            await stop_recording(recording_handle)
+                            recording_handle = None
+                            print("Recording stopped")
+                except Exception as e:
+                    print(f"Error processing message: {e}")
+                    
     except ConnectionError:
         print("Peer disconnected")
+    finally:
+        # Ensure recording is stopped if connection is lost
+        if recording_handle:
+            await stop_recording(recording_handle)
 
 async def send_messages(writer):
     try:
@@ -76,7 +109,7 @@ async def main():
         os.remove(socket_path)
 
     server = await asyncio.start_unix_server(
-        handle_inference, socket_path
+        handle_connection, socket_path
     )
     print("Server started, waiting for connection...")
     
