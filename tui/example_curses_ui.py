@@ -1,4 +1,5 @@
 import curses
+import time
 import asyncio
 import os
 import json
