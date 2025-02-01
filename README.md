@@ -6,6 +6,10 @@ Transcriber uses a GPU accelerated Whisper Large v3 model. The transcription eng
 
 The transcriber depends on streaming audio from a microphone. It does not work on recorded files.
 
+## Architecture
+
+See [Transcriber architecture.pdf](Transcriber architecture.pdf) for the first draft of the architecture.
+
 ## Sending messages to the container
 
 The client is a UI using the curses terminal UI library, it sends messages to the container over the socket.
