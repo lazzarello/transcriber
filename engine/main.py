@@ -5,6 +5,13 @@ import asyncio
 import os
 import subprocess
 
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+model_id = "openai/whisper-large-v3"
+model = AutoModelForSpeechSeq2Seq.from_pretrained(
+    model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True)
+model.to(device)
+
 async def start_recording():
     cmd = ["arecord", "--device=pipewire", "test.wav"]
     handle = subprocess.Popen(cmd)  # Use Popen instead of run
@@ -16,7 +23,7 @@ async def stop_recording(handle):
         handle.wait()  # Wait for the process to actually terminate
     return handle
 
-async def receive_messages(reader):
+async def receive_messages(reader, writer):  # Add writer parameter
     recording_handle = None
     try:
         while True:
@@ -38,8 +45,16 @@ async def receive_messages(reader):
                             await stop_recording(recording_handle)
                             recording_handle = None
                             print("Recording stopped")
+                            # run automatic_speech_recognition on test.wav and send result
+                            result = await automatic_speech_recognition(audio_file="test.wav")
+                            response = {"type": "transcription", "text": result}
+                            writer.write(str(response).encode('utf-8'))
+                            await writer.drain()
                 except Exception as e:
                     print(f"Error processing message: {e}")
+                    error_msg = {"type": "error", "message": str(e)}
+                    writer.write(str(error_msg).encode('utf-8'))
+                    await writer.drain()
                     
     except ConnectionError:
         print("Peer disconnected")
@@ -59,50 +74,29 @@ async def send_messages(writer):
     except ConnectionError:
         print("\nConnection lost")
 
-async def automatic_speech_recognition(writer):
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-    model_id = "openai/whisper-large-v3"
-    model = AutoModelForSpeechSeq2Seq.from_pretrained(
-        model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True)
-    model.to(device)
-
-    def inference():
-        processor = AutoProcessor.from_pretrained(model_id)
-        pipe = pipeline(
-            "automatic-speech-recognition",
-            model=model,
-            tokenizer=processor.tokenizer,
-            feature_extractor=processor.feature_extractor,
-            torch_dtype=torch_dtype,
-            device=device,
-            return_timestamps=True,
-        )
-        dataset = load_dataset("distil-whisper/librispeech_long", "clean", split="validation")
-        sample = dataset[0]["audio"]
-        result = pipe(sample)
-        return result["text"]
-
-    try:
-        while True:
-            message = await asyncio.get_event_loop().run_in_executor(
-                None, inference
-            )
-            writer.write(message.encode('utf-8'))
-            await writer.drain()
-    except ConnectionError:
-        print("\nConnection lost")
+# refactor to use real parameters or kwargs not globals
+async def automatic_speech_recognition(audio_file, *kwargs):
+    processor = AutoProcessor.from_pretrained(model_id)
+    pipe = pipeline(
+        "automatic-speech-recognition",
+        model=model,
+        tokenizer=processor.tokenizer,
+        feature_extractor=processor.feature_extractor,
+        torch_dtype=torch_dtype,
+        device=device,
+        return_timestamps=True,
+    )
+    ## Update to use the audio_file
+    dataset = load_dataset("distil-whisper/librispeech_long", "clean", split="validation")
+    sample = dataset[0]["audio"]
+    result = pipe(sample)
+    return result["text"]
 
 async def handle_connection(reader, writer):
-    receive_task = asyncio.create_task(receive_messages(reader))
+    receive_task = asyncio.create_task(receive_messages(reader, writer))
     send_task = asyncio.create_task(send_messages(writer))
     await asyncio.gather(receive_task, send_task)
 
-async def handle_inference(reader, writer):
-    receive_task = asyncio.create_task(receive_messages(reader))
-    send_task = asyncio.create_task(automatic_speech_recognition(writer))
-    await asyncio.gather(receive_task, send_task)
-    
 async def main():
     socket_path = f'{os.getcwd()}/my_socket.sock'
     if os.path.exists(socket_path):
