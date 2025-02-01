@@ -1,6 +1,6 @@
 import torch
+import json
 from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
-from datasets import load_dataset
 import asyncio
 import os
 import subprocess
@@ -36,9 +36,12 @@ async def receive_messages(reader, writer):  # Add writer parameter
             # Convert string representation of dict to actual dict
             if message.startswith('{') and message.endswith('}'):
                 try:
-                    msg_dict = eval(message)  # Safe here since we control the message format
+                    msg_dict = json.loads(message)  # More reliable than eval()
+                    # debug why this logic always uses the default language
+                    lang = "en"
                     if msg_dict.get('type') == 'transcribe':
                         if msg_dict.get('event') == 'on' and not recording_handle:
+                            lang = msg_dict.get('language')
                             recording_handle = await start_recording()
                             print("Recording started")
                         elif msg_dict.get('event') == 'off' and recording_handle:
@@ -46,7 +49,8 @@ async def receive_messages(reader, writer):  # Add writer parameter
                             recording_handle = None
                             print("Recording stopped")
                             # run automatic_speech_recognition on test.wav and send result
-                            result = await automatic_speech_recognition(audio_file="test.wav")
+                            result = await automatic_speech_recognition(audio_file="test.wav",
+                                                                        language=lang)
                             response = {"type": "transcription", "text": result}
                             writer.write(str(response).encode('utf-8'))
                             await writer.drain()
@@ -75,7 +79,7 @@ async def send_messages(writer):
         print("\nConnection lost")
 
 # refactor to use real parameters or kwargs not globals
-async def automatic_speech_recognition(audio_file, *kwargs):
+async def automatic_speech_recognition(audio_file, language):
     processor = AutoProcessor.from_pretrained(model_id)
     pipe = pipeline(
         "automatic-speech-recognition",
@@ -83,14 +87,12 @@ async def automatic_speech_recognition(audio_file, *kwargs):
         tokenizer=processor.tokenizer,
         feature_extractor=processor.feature_extractor,
         torch_dtype=torch_dtype,
+        chunk_length_s=30,
         device=device,
         return_timestamps=True,
     )
-    # dataset = load_dataset("distil-whisper/librispeech_long", "clean", split="validation")
-    # sample = dataset[0]["audio"]
-    # result = pipe(sample)
-    ## Update to use the audio_file
-    result = pipe(audio_file)
+    print("Output language: ", language)
+    result = pipe(audio_file, generate_kwargs={"language": language })
     return result["text"]
 
 async def handle_connection(reader, writer):

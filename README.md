@@ -20,7 +20,11 @@ The engine container runs with a UNIX socket exposed to allow data to stream bac
 
 ## TODO
 
-* Run CPU inference on a file recorded through the Transcribe button using from my laptop microphone + pipewire setup
+* Add source language pulldown
+* Add pipewire source node selector
+* Add pipewire sink selector (defaults to built-in audio)
+* Add translated language pulldown
+* Set refresh interval for message box
 
 ## BIG UPS!
 
