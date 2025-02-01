@@ -86,10 +86,11 @@ async def automatic_speech_recognition(audio_file, *kwargs):
         device=device,
         return_timestamps=True,
     )
+    # dataset = load_dataset("distil-whisper/librispeech_long", "clean", split="validation")
+    # sample = dataset[0]["audio"]
+    # result = pipe(sample)
     ## Update to use the audio_file
-    dataset = load_dataset("distil-whisper/librispeech_long", "clean", split="validation")
-    sample = dataset[0]["audio"]
-    result = pipe(sample)
+    result = pipe(audio_file)
     return result["text"]
 
 async def handle_connection(reader, writer):
