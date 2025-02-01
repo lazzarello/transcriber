@@ -38,7 +38,7 @@ async def receive_messages(reader, writer):  # Add writer parameter
                 try:
                     msg_dict = json.loads(message)  # More reliable than eval()
                     # debug why this logic always uses the default language
-                    lang = "en"
+                    # lang = "en"
                     if msg_dict.get('type') == 'transcribe':
                         if msg_dict.get('event') == 'on' and not recording_handle:
                             lang = msg_dict.get('language')
