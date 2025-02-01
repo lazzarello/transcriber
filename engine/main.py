@@ -13,7 +13,7 @@ model = AutoModelForSpeechSeq2Seq.from_pretrained(
 model.to(device)
 
 async def start_recording():
-    cmd = ["arecord", "--device=pipewire", "test.wav"]
+    cmd = ["arecord", "--device=pipewire", "-f", "S16_LE", "test.wav"]
     handle = subprocess.Popen(cmd)  # Use Popen instead of run
     return handle
 
