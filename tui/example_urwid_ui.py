@@ -83,6 +83,8 @@ class TranscriberUI:
     def __init__(self):
         self.message_box = MessageBox()
         self.button = TranscribeButton("TRANSCRIBE")
+        # Connect the button's click signal to our handler
+        urwid.connect_signal(self.button, 'click', self._on_button_click)
         self.language_pulldown = LanguagePulldown("Language", languages)
         
         # Layout
@@ -110,15 +112,36 @@ class TranscriberUI:
         self.reader, self.writer = await asyncio.open_unix_connection(socket_path)
         self.message_box.add_message("Connected. Press SPACE to start/stop transcription. Q to quit.")
 
-    async def handle_input(self, key):
+    def _on_button_click(self, button):
+        if not self.language_pulldown.is_open:
+            if not self.button.pressed:
+                self.button.toggle(True)
+                asyncio.create_task(self._handle_transcription_start())
+            else:
+                self.button.toggle(False)
+                asyncio.create_task(self._handle_transcription_stop())
+
+    def handle_input(self, key):
         if key in ('q', 'Q'):
             raise urwid.ExitMainLoop()
         elif key == ' ':
             if not self.language_pulldown.is_open:
-                self.button.toggle(True)
-                self.message_container['current'] = await start_transcription(self.language_pulldown)
-                self.event.set()
-                self.message_box.add_message("Recording started")
+                if not self.button.pressed:
+                    self.button.toggle(True)
+                    asyncio.create_task(self._handle_transcription_start())
+                else:
+                    self.button.toggle(False)
+                    asyncio.create_task(self._handle_transcription_stop())
+
+    async def _handle_transcription_start(self):
+        self.message_container['current'] = await start_transcription(self.language_pulldown)
+        self.event.set()
+        self.message_box.add_message("Recording started")
+
+    async def _handle_transcription_stop(self):
+        self.message_container['current'] = await stop_transcription()
+        self.event.set()
+        self.message_box.add_message("Recording stopped")
 
     def run(self):
         # Get the current event loop
