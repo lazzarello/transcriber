@@ -10,6 +10,7 @@ pub struct App {
     pub running: bool,
     /// counter
     pub counter: u8,
+    pub responses: Vec<String>,
 }
 
 impl Default for App {
@@ -17,6 +18,7 @@ impl Default for App {
         Self {
             running: true,
             counter: 0,
+            responses: Vec::new(),
         }
     }
 }
@@ -45,5 +47,9 @@ impl App {
         if let Some(res) = self.counter.checked_sub(1) {
             self.counter = res;
         }
+    }
+
+    pub fn receive_response(&mut self, response: String) {
+        self.responses.push(response);
     }
 }
