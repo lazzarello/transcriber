@@ -12,7 +12,7 @@ See [Transcriber architecture.pdf](Transcriber architecture.pdf) for the first d
 
 ## Sending messages to the container
 
-The client is a UI using the curses terminal UI library, it sends messages to the container over the socket.
+The client is a UI using a terminal UI library, it sends messages to the container over the socket.
 
 The engine container runs with a UNIX socket exposed to allow data to stream back and forth between the host and container. The nvidia-containter-toolkit must be installed and configured to get GPU acceleration for the Whisper model.
 
@@ -20,6 +20,7 @@ The engine container runs with a UNIX socket exposed to allow data to stream bac
 
 ## TODO
 
+* Add Rust TUI
 * Add pipewire source node selector
 * Add pipewire sink selector (defaults to built-in audio)
 
