@@ -7,4 +7,4 @@ docker run -it --user lee --rm \
   -e XDG_RUNTIME_DIR=/tmp \
   -v $HOME/.cache/huggingface/hub:$HOME/.cache/huggingface/hub \
   -v $HOME/.cache/huggingface/datasets:$HOME/.cache/huggingface/datasets \
-  transcriber-engine:cpu-only \
+  transcriber-engine:whisper-release \
