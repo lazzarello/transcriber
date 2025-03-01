@@ -18,7 +18,11 @@ impl Default for App {
         Self {
             running: true,
             counter: 0,
-            responses: Vec::new(),
+            // responses: Vec::new(),
+            responses: vec![
+                String::from("Hello"),
+                String::from("World")
+            ],
         }
     }
 }
@@ -26,7 +30,9 @@ impl Default for App {
 impl App {
     /// Constructs a new instance of [`App`].
     pub fn new() -> Self {
-        Self::default()
+        let mut app = Self::default();
+        app.receive_response(String::from("Welcome to the application!"));
+        app
     }
 
     /// Handles the tick event of the terminal.

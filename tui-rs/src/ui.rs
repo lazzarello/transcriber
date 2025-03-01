@@ -40,7 +40,9 @@ pub fn render(app: &mut App, frame: &mut Frame) {
 
     // Render the second widget in the bottom half
     frame.render_widget(
-        Paragraph::new("Transcription Results")
+        Paragraph::new(format!(
+            "Transcription Results: {}",
+            app.responses.join("\n")))
             .block(
                 Block::bordered()
                     .title("Output")
