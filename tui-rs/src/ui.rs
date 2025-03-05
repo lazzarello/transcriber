@@ -16,7 +16,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
             ratatui::layout::Constraint::Percentage(50),
             ratatui::layout::Constraint::Percentage(50),
         ])
-        .split(frame.size());
+        .split(frame.area());
 
     // Render the first widget in the top half
     frame.render_widget(

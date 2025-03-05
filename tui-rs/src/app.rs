@@ -1,4 +1,5 @@
 use std::error;
+use crate::socket::SocketConnection;
 
 /// Application result type.
 pub type AppResult<T> = std::result::Result<T, Box<dyn error::Error>>;
@@ -57,5 +58,17 @@ impl App {
 
     pub fn receive_response(&mut self, response: String) {
         self.responses.push(response);
+    }
+
+    // This is a duplicate of the above. Remove it when real socket data is working.
+    pub fn handle_socket_message(&mut self, message: String) {
+        self.responses.push(message);
+    }
+
+    pub async fn send_transcribe_command(&mut self, socket: &mut SocketConnection) -> Result<(), Box<dyn error::Error>> {
+        // this is a pretty cool string formatting macro(? is that what it is called?)
+        let message = r#"{"event": "on", "type": "transcribe", "language": "en"}"#;
+        socket.send_message(message).await?;
+        Ok(())
     }
 }

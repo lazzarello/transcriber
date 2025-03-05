@@ -1,5 +1,6 @@
 use std::io;
-
+use std::path::PathBuf;
+use crate::socket::SocketConnection;
 use ratatui::{backend::CrosstermBackend, Terminal};
 
 use crate::{
@@ -9,14 +10,19 @@ use crate::{
     tui::Tui,
 };
 
+// These module names are directly related to file names in the source directory
 pub mod app;
 pub mod event;
 pub mod handler;
 pub mod tui;
 pub mod ui;
+pub mod socket;
 
 #[tokio::main]
 async fn main() -> AppResult<()> {
+    let socket_path = PathBuf::from("../engine/my_socket.sock");
+    let mut socket = SocketConnection::connect(socket_path).await?;
+
     // Create an application.
     let mut app = App::new();
 
@@ -32,11 +38,18 @@ async fn main() -> AppResult<()> {
         // Render the user interface.
         tui.draw(&mut app)?;
         // Handle events.
-        match tui.events.next().await? {
-            Event::Tick => app.tick(),
-            Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
-            Event::Mouse(_) => {}
-            Event::Resize(_, _) => {}
+        tokio::select! {
+            Ok(event) = tui.events.next() => {
+                match event {
+                    Event::Tick => app.tick(),
+                    Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
+                    Event::Mouse(_) => {}
+                    Event::Resize(_, _) => {}
+                }
+            }
+            Ok(message) = socket.receive_message() => {
+                app.handle_socket_message(message);
+            }
         }
     }
 
