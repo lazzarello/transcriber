@@ -53,4 +53,23 @@ pub fn render(app: &mut App, frame: &mut Frame) {
             .centered(),
         chunks[1],
     );
+
+    // Render the "Transcribe" button
+    frame.render_widget(
+        Paragraph::new("Transcribe")
+            .block(
+                Block::bordered()
+                    .title("Control")
+                    .title_alignment(Alignment::Center)
+                    .border_type(BorderType::Rounded),
+            )
+            .style(Style::default().fg(Color::Black).bg(Color::White))  // Inverted colors to look like a button
+            .alignment(Alignment::Center),
+        ratatui::layout::Rect::new(
+            (frame.area().width.saturating_sub(30)) / 2,  // Center horizontally
+            chunks[0].y + (chunks[0].height / 2),         // Center vertically in top chunk
+            30,                                           // Width of 60 characters
+            3,                                            // Height of 3 rows (border + text)
+        ),
+    );
 }

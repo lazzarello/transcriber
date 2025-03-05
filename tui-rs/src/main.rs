@@ -6,7 +6,7 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 use crate::{
     app::{App, AppResult},
     event::{Event, EventHandler},
-    handler::handle_key_events,
+    handler::{handle_key_events, handle_mouse_events},
     tui::Tui,
 };
 
@@ -36,6 +36,8 @@ async fn main() -> AppResult<()> {
     // Start the main loop.
     while app.running {
         // Render the user interface.
+        // Generated through Augment and wrong
+        // app.size = tui.terminal.size()?;
         tui.draw(&mut app)?;
         // Handle events.
         tokio::select! {
@@ -43,7 +45,7 @@ async fn main() -> AppResult<()> {
                 match event {
                     Event::Tick => app.tick(),
                     Event::Key(key_event) => handle_key_events(key_event, &mut app)?,
-                    Event::Mouse(_) => {}
+                    Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app).await?,
                     Event::Resize(_, _) => {}
                 }
             }

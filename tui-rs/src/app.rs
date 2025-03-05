@@ -12,6 +12,8 @@ pub struct App {
     /// counter
     pub counter: u8,
     pub responses: Vec<String>,
+    pub size: ratatui::layout::Rect,
+    pub socket: Option<SocketConnection>,
 }
 
 impl Default for App {
@@ -24,6 +26,8 @@ impl Default for App {
                 String::from("Hello"),
                 String::from("World")
             ],
+            size: ratatui::layout::Rect::default(),
+            socket: None,
         }
     }
 }

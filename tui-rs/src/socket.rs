@@ -4,6 +4,7 @@ use tokio::io::{BufReader, AsyncBufReadExt, AsyncWriteExt};
 use std::path::PathBuf;
 use std::error::Error;
 
+#[derive(Debug)]
 pub struct SocketConnection {
     reader: BufReader<OwnedReadHalf>,
     writer: OwnedWriteHalf,
