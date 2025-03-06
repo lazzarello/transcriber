@@ -13,7 +13,7 @@ pub struct App {
     pub counter: u8,
     pub responses: Vec<String>,
     pub size: ratatui::layout::Rect,
-    pub socket: Option<SocketConnection>,
+    pub socket: Option<SocketConnection>,  // Changed to Option<SocketConnection>
 }
 
 impl Default for App {
@@ -27,7 +27,7 @@ impl Default for App {
                 String::from("World")
             ],
             size: ratatui::layout::Rect::default(),
-            socket: None,
+            socket: None,  // Initialize as None
         }
     }
 }
@@ -64,15 +64,9 @@ impl App {
         self.responses.push(response);
     }
 
-    // This is a duplicate of the above. Remove it when real socket data is working.
-    pub fn handle_socket_message(&mut self, message: String) {
-        self.responses.push(message);
-    }
-
-    pub async fn send_transcribe_command(&mut self, socket: &mut SocketConnection) -> Result<(), Box<dyn error::Error>> {
-        // this is a pretty cool string formatting macro(? is that what it is called?)
+    pub fn send_transcribe_command(&mut self, socket: &mut SocketConnection) -> Result<(), Box<dyn error::Error>> {
         let message = r#"{"event": "on", "type": "transcribe", "language": "en"}"#;
-        socket.send_message(message).await?;
+        socket.send_message(message);
         Ok(())
     }
 }

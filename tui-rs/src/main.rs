@@ -21,10 +21,11 @@ pub mod socket;
 #[tokio::main]
 async fn main() -> AppResult<()> {
     let socket_path = PathBuf::from("../engine/my_socket.sock");
-    let mut socket = SocketConnection::connect(socket_path).await?;
+    let socket = SocketConnection::connect(socket_path).await?;
 
     // Create an application.
     let mut app = App::new();
+    app.socket = Some(socket);
 
     // Initialize the terminal user interface.
     let backend = CrosstermBackend::new(io::stdout());
@@ -48,9 +49,6 @@ async fn main() -> AppResult<()> {
                     Event::Mouse(mouse_event) => handle_mouse_events(mouse_event, &mut app).await?,
                     Event::Resize(_, _) => {}
                 }
-            }
-            Ok(message) = socket.receive_message() => {
-                app.handle_socket_message(message);
             }
         }
     }

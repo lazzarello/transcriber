@@ -1,5 +1,6 @@
 use ratatui::{
-    layout::{Alignment, Layout, Direction, Constraint},
+    // layout::{Alignment, Layout, Direction, Constraint},
+    layout::Alignment,
     style::{Color, Style},
     widgets::{Block, BorderType, Paragraph},
     Frame,
@@ -68,7 +69,7 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         ratatui::layout::Rect::new(
             (frame.area().width.saturating_sub(30)) / 2,  // Center horizontally
             chunks[0].y + (chunks[0].height / 2),         // Center vertically in top chunk
-            30,                                           // Width of 60 characters
+            30,                                           // Width of 30 characters
             3,                                            // Height of 3 rows (border + text)
         ),
     );
