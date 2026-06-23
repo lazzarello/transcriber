@@ -1,5 +1,5 @@
 # Transcriber
-
+**ARCHIVED** in favor of the most excellent [Voxtype](https://github.com/peteonrails/voxtype) project that does this on the compositor level.
 ## A realtime speech transcription system
 
 Transcriber uses a GPU accelerated Whisper Large v3 model. The transcription engine runs in a large container based on the 12.4.0-devel-ubuntu22.04 image from nvidia/cuda. This ensures the matrix of dependencies to get PyTorch to work is met. It also prevents accidently breaking the host system by fiddling with CUDA and Nvidia drivers.
